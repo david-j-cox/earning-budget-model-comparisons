@@ -10,6 +10,15 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{enumitem}
 \usepackage{titlesec}
+\usepackage{fancyhdr}
+
+% Running head left-aligned, page number right-aligned, in the header
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Running Head: EXPERIENTIAL CHOICE UNDER BUDGETS}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\setlength{\headheight}{14.5pt}
 
 % Keep all headings at body size (12pt)
 \titleformat*{\section}{\normalsize\bfseries}
