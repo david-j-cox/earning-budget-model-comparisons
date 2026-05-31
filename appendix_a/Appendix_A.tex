@@ -1,0 +1,247 @@
+\documentclass[12pt]{article}
+
+\usepackage[letterpaper,top=1in,bottom=1in,left=1in,right=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{newtxtext,newtxmath}  % Times New Roman text + math (APA)
+\usepackage{setspace}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+
+% Keep all headings at body size (12pt)
+\titleformat*{\section}{\normalsize\bfseries}
+\titleformat*{\subsection}{\normalsize\bfseries\itshape}
+
+\setlength{\parindent}{0.5in}
+\setlength{\parskip}{0pt}
+\doublespacing
+
+% Force the glue around display equations to a fixed value and keep it from
+% being reset by setspace on every font-size selection (e.g. via titlesec
+% headings), so the gap around math matches the gap between text lines.
+\newlength{\dispskip}
+\setlength{\dispskip}{0pt}
+\makeatletter
+\g@addto@macro\normalsize{%
+  \setlength{\abovedisplayskip}{\dispskip}%
+  \setlength{\belowdisplayskip}{\dispskip}%
+  \setlength{\abovedisplayshortskip}{\dispskip}%
+  \setlength{\belowdisplayshortskip}{\dispskip}%
+}
+\makeatother
+
+\begin{document}
+
+\begin{center}
+\normalsize\textbf{Appendix A: Full Model Specifications}
+\end{center}
+
+\indent The 24 models are listed in the order presented in the Method section and grouped into six model families. For each model, the description gives the predictive update rule, the free parameters with their bounds, and the originating citation. 
+
+Notation: $c_t$ is the participant's choice on trial $t$ ($1 =$ smaller--sooner, $0 =$ larger--later); $r_t$ is the per-trial reward (normalized bank delta for the learning models; see the \textit{Outcome Normalization} subsection of the Method); $P_t(\mathrm{SS})$ is the model's predicted probability of choosing the smaller--sooner alternative on trial $t$; and $\sigma(\cdot)$ denotes the logistic function $\sigma(x) = 1 / (1 + e^{-x})$.
+
+\section*{BASELINE MODELS}
+
+\textbf{Random.}\quad $P_t(\mathrm{SS}) = 0.5$ for all $t$. Zero parameters.
+
+\textbf{Bias.}\quad $P_t(\mathrm{SS}) = p$ for all $t$, where $p$ is fit as the participant's overall sample proportion of SS choices, clipped to $(10^{-6}, 1 - 10^{-6})$. One parameter ($p$).
+
+\textbf{Win-Stay / Lose-Shift (WSLS).}\quad For $t \geq 2$,
+\[
+P(\text{repeat } c_{t-1}) =
+\begin{cases}
+p_{\text{stay-win}}, & r_{t-1} > 0 \\
+1 - p_{\text{shift-lose}}, & r_{t-1} \leq 0
+\end{cases}
+\]
+Two parameters: $p_{\text{stay-win}}, p_{\text{shift-lose}} \in (0.01, 0.99)$. The first trial has no defined prediction and is assigned $P(\mathrm{SS}) = 0.5$. Following the parameterization in Worthy et al.\ (2013) and the implementation in Cox (2026).
+
+\textbf{Logistic Regression.}
+\[
+P_t(\mathrm{SS}) = \sigma\!\left( \beta_0 + \beta_1 c_{t-1} + \beta_2 r_{t-1} + \beta_3\, c_{t-1} r_{t-1} \right).
+\]
+Four parameters (intercept plus three slopes). Fit by L-BFGS-B inside scikit-learn's \texttt{LogisticRegression} with $C = 10^{6}$ (effectively unregularized). Trials with missing prior-trial information are excluded from the fit but included in evaluation with $P_t(\mathrm{SS}) = 0.5$.
+
+\section*{BEHAVIORAL ECOLOGY MODELS}
+
+\indent The energy-budget framework formalizes choice between a lower-variance and a higher-variance option as a function of whether the organism is on pace to meet the resource requirement $R$ within the available time $T$ at the average earning rate $t$. When $T > Rt$ (a \textit{positive} budget) the lower-variance option suffices and is preferred; when $T < Rt$ (a \textit{negative} budget) only the higher-variance option can exceed the deterministic shortfall and is preferred. In this task SS is the lower-variance option and LL the higher-variance option, and the programmed loss rates and requirements come from Table 1. The framework is operationalized as four variants below. Because it shares the same rate-based logic, the family additionally includes two variants that apply the marginal value theorem (Charnov, 1976); these are described after the four energy-budget variants.
+
+A common quantity across the first two variants is the projected end-of-condition bank (``distance to death''),
+\[
+d_t \;=\; \mathrm{bank}_t \;-\; \mathrm{loss\_rate}_{\text{condition}} \cdot \mathrm{time\_left}_t,
+\]
+with $\mathrm{loss\_rate}_{\text{condition}}$ the programmed loss rate from Table 1. Within each participant, $d_t$ is rescaled by $\max_t |d_t|$ (floored at 1) so that the inverse-temperature parameter lives on a comparable scale across participants.
+
+\textbf{Minimal Sigmoid (canonical).}
+\[
+P_t(\mathrm{SS}) = \sigma(\beta \cdot d_t).
+\]
+One parameter: $\beta$ (bounded in $(-10, 10)$ on the rescaled-distance scale). Positive $\beta$ corresponds to the qualitative prediction that the lower-variance option (SS) is preferred when the projected bank is well-above needed to survive a period and the higher-variance option (LL) when it is not. This is the ``as published'' baseline.
+
+\textbf{Threshold Sigmoid.} A second parameter relocates the indifference point off $d_t = 0$:
+\[
+P_t(\mathrm{SS}) = \sigma\!\left( \beta \cdot (d_t - \tau) \right).
+\]
+Two parameters: $\beta \in (-10, 10)$, $\tau \in (-2, 2)$ (on the rescaled-distance scale). The learnable threshold $\tau$ allows the predicted preference reversal to move with the data rather than being pinned at distance-to-death $= 0$. That is, adjust based on each participant's behavior as opposed to assuming an arbitrary threshold for switching.
+
+\textbf{Caraco $z$-Score Risk-Sensitivity (Caraco, 1981).} For each option $i \in \{\mathrm{SS}, \mathrm{LL}\}$, a standardized score
+\[
+z_i = \frac{\mu_i - \hat{R}}{\sigma_i}
+\]
+is formed, where $\mu_i$ and $\sigma_i$ are running (Welford) per-option reward mean and standard deviation over the choice history, and $\hat{R}$ is the per-trial required net earning rate from the budget arithmetic,
+\[
+\hat{R} \;=\; \frac{\max(R - \mathrm{bank}_t,\, 0)}{\mathrm{time\_left}_t} \;+\; \mathrm{loss\_rate}_{\text{condition}},
+\]
+with $R$ the required points from Table 1. The choice rule is
+\[
+P_t(\mathrm{SS}) = \sigma\!\left( \beta \cdot (z_{\mathrm{SS}} - z_{\mathrm{LL}}) \right),
+\]
+the $z$-difference rescaled to unit range within participant. One parameter: $\beta \in (-10, 10)$. Fit only when the participant has at least five trials (so each option has enough observations for the rolling statistics).
+
+\textbf{Categorical Preference-Reversal Test (non-parametric).} A directional test of the framework's qualitative prediction. Within participant, let $P(\mathrm{LL} \mid +)$ and $P(\mathrm{LL} \mid -)$ be the empirical proportion of LL choices under positive- and negative-budget conditions, respectively; the reported statistic is
+\[
+\delta = P(\mathrm{LL} \mid -) - P(\mathrm{LL} \mid +),
+\]
+with $\delta > 0$ indicating the predicted reversal toward the higher-variance option under a negative budget. For trial-level scoring, each trial is predicted from the empirical SS base rate within its budget sign, $P_t(\mathrm{SS}) = 1 - P(\mathrm{LL} \mid \mathrm{sign}(t))$. This is not a maximum-likelihood fit; it is scored with two parameters for parity in the AIC/BIC comparison table. Requires at least two trials in each of the positive- and negative-budget conditions.
+
+\subsection*{Marginal Value Theorem (Charnov, 1976)}
+
+\indent The remaining two variants operationalize the marginal value theorem. Because the task presents a binary smaller--sooner / larger--later choice rather than a patch-residence decision, the theorem is applied in its short-term rate-maximization form (Stephens \& Anderson, 2001; Stephens, 2002): each option is valued by its reward magnitude net of the opportunity cost of its delay, the delay being priced at the background earning rate of the environment $\rho$,
+\[
+\mathrm{SV}_i = V_i - \rho \, D_i, \qquad i \in \{\mathrm{SS}, \mathrm{LL}\}.
+\]
+The organism, thus, prefers the option with the higher rate-adjusted value, giving the decision variable
+\[
+d_t(\rho) = \mathrm{SV}_{\mathrm{SS}} - \mathrm{SV}_{\mathrm{LL}} = (V_{\mathrm{SS}} - V_{\mathrm{LL}}) + \rho \, (D_{\mathrm{LL}} - D_{\mathrm{SS}}),
+\]
+where $V_{\mathrm{SS}} = 1$ is the normalized smaller--sooner amount, $V_{\mathrm{LL}}$ is the group LL:SS magnitude ratio (5 or 10), $D_{\mathrm{SS}} = 1$\,s is the deterministic SS delay, and $D_{\mathrm{LL}}$ is the current adjusting delay to LL. The choice rule is $P_t(\mathrm{SS}) = \sigma(\beta \cdot d_t / \mathrm{scale})$, where the within-participant normalizer is $\max_t |d_t|$ (floored at 1) evaluated at $\rho = \mathrm{loss\_rate}_{\text{condition}}$ and held fixed so that $\beta$ is on a comparable scale across participants and across both variants. The two variants differ only in how the background rate $\rho$ is set.
+
+\textbf{Marginal Value, Loss-Rate $\rho$.} The background rate is fixed to the condition loss rate, $\rho = \mathrm{loss\_rate}_{\text{condition}}$ (Table 1), so that the opportunity cost of waiting $D_{\mathrm{LL}}$ seconds for the larger reward is exactly the points forgone to the ongoing budget drain. One parameter: $\beta \in (-10, 10)$.
+
+\textbf{Marginal Value, Fitted $\rho$.} The background rate is instead estimated as a free per-participant opportunity cost (i.e., the participant's revealed environmental rate) with the same decision variable and choice rule. Two parameters: $\beta \in (-10, 10)$, $\rho \in (0, 5)$.
+
+\section*{BEHAVIOR-DYNAMIC MODELS}
+
+\indent All five share a softmax inverse-temperature parameter $\beta$, optimized on the log scale (effective range $e^{-2}$ to $e^{5}$).
+
+\textbf{Melioration (Herrnstein \& Vaughan, 1980; Vaughan, 1981).} Exponentially weighted local rates $R_{\mathrm{SS}}, R_{\mathrm{LL}}$ update only for the chosen option:
+\[
+R_{\text{chosen}} \leftarrow (1 - \alpha) \cdot R_{\text{chosen}} + \alpha \cdot r_t.
+\]
+\[
+P_t(\mathrm{SS}) = \sigma\!\left( \beta \cdot (R_{\mathrm{SS}} - R_{\mathrm{LL}}) \right).
+\]
+Two parameters: $\alpha \in (0, 1)$, $\beta > 0$. Initialized at $R_{\mathrm{SS}} = R_{\mathrm{LL}} = 0$.
+
+\textbf{Kinetic Model (Myerson \& Hale, 1988; Myerson \& Miezin, 1980).} Choice proportion $P$ evolves toward an equilibrium driven by local reinforcement rates:
+\[
+P_{t+1} = \mathrm{clip}\!\left( P_t + k \cdot \left( R_{\mathrm{SS}, t} \cdot (1 - P_t) - R_{\mathrm{LL}, t} \cdot P_t \right),\; 0.001,\; 0.999 \right),
+\]
+\[
+P_t(\mathrm{SS}) = \sigma\!\left( \beta \cdot (P_t - 0.5) \right).
+\]
+Two parameters: $k > 0$ (rate constant), $\beta > 0$. Local rates $R_{\mathrm{SS}, t}$ and $R_{\mathrm{LL}, t}$ are computed by a rolling 10-trial window of normalized outcomes.
+
+\textbf{Behavioral Momentum (Nevin, 1992; Nevin \& Shahan, 2011).} Within each condition, accumulated reward per option is tracked. At condition transitions, prior strengths $s_{\mathrm{SS}}$ and $s_{\mathrm{LL}}$ are set to the prior condition's mean reward per option. Within a condition, after $t_{\text{in\_phase}}$ trials,
+\[
+\mathrm{decay}_i \;=\; 10^{\,(-t_{\text{in\_phase}} (c + d s_i)) \,/\, \max(|s_i|^{0.5},\, 0.01)}, \quad i \in \{\mathrm{SS}, \mathrm{LL}\}.
+\]
+Preference for option $i$ is the current local rate plus $s_i \cdot \mathrm{decay}_i$; $P_t(\mathrm{SS}) = \sigma\!\left( \beta \cdot (\mathrm{pref}_{\mathrm{SS}} - \mathrm{pref}_{\mathrm{LL}}) \right)$. Three parameters: $c > 0$ (baseline disruption), $d > 0$ (reinforcement-dependent disruption), $\beta > 0$.
+
+\textbf{Hill-Climbing / Momentary Maximizing (after Hinson \& Staddon, 1983).} Let $t_{\mathrm{SS}}, t_{\mathrm{LL}}$ track the time since the last response to each option and $T_{\mathrm{SS}}, T_{\mathrm{LL}}$ the time since the last reinforcer on each option. On each trial two recency signals are formed: a choice-recency difference and a reinforcer-recency difference:
+\[
+g_t = t_{\mathrm{LL}} - t_{\mathrm{SS}}, \qquad
+h_t = \frac{1}{\max(T_{\mathrm{SS}},\, 0.01)} - \frac{1}{\max(T_{\mathrm{LL}},\, 0.01)}.
+\]
+Each is standardized to zero mean and unit variance across the participant's trials, yielding $\tilde{g}_t$ and $\tilde{h}_t$. The decision variable and choice rule are:
+\[
+D_t = \tilde{g}_t + A\,\tilde{h}_t, \qquad
+P_t(\mathrm{SS}) = \sigma\!\left( \beta \cdot D_t \right).
+\]
+This leads to two parameters: $A > 0$ (weight on reinforcer recency relative to choice recency), $\beta > 0$. Inter-response times were computed from the difference in $\mathrm{time\_left}$ between adjacent trials. This implementation orients value toward the currently exploited option and thereby reverses the sign of the canonical momentary-maximizing rule, in which an option's value increases with the time since it was last sampled. Standardizing the two recency signals places them on a common scale, so that $A$ and $\beta$ are identifiable rather than dominated by the unbounded raw-time term.
+
+\textbf{Ratio Invariance (Staddon, 1988).} Equilibrium choice proportion is:
+\[
+s^{*} = \mathrm{clip}\!\left( \frac{R_{\mathrm{SS}} - \omega}{R_{\mathrm{SS}} + R_{\mathrm{LL}} - 2\omega},\; 0.01,\; 0.99 \right),
+\]
+with a fallback to $s^{*} = 0.5$ if the denominator is below $10^{-6}$ in absolute value. $P_t(\mathrm{SS}) = \sigma\!\left( \beta \cdot (s^{*} - 0.5) \right)$. Local rates use the melioration update with a fixed learning rate $\alpha = 0.1$. Two parameters: $\omega \in (0, 0.5)$, $\beta > 0$.
+
+\section*{REINFORCEMENT LEARNING ACTION-VALUE MODELS}
+
+\indent All five operate on a 2-element Q-vector $(Q_{\mathrm{LL}}, Q_{\mathrm{SS}})$ initialized at $(0, 0)$. On each trial, $P_t(\mathrm{SS}) = \sigma\!\left( \beta \cdot (Q_{\mathrm{SS}} - Q_{\mathrm{LL}}) \right)$. After the choice and reward observation, the value of the chosen option is updated.
+
+\textbf{Q-Learning.}
+\[
+Q_{c_t} \leftarrow Q_{c_t} + \alpha \cdot (r_t - Q_{c_t}).
+\]
+Two parameters: $\alpha \in (0, 1)$, $\beta > 0$.
+
+\textbf{Q-Learning with Dual Learning Rate.}
+\[
+\alpha =
+\begin{cases}
+\alpha^{+}, & r_t - Q_{c_t} > 0 \\
+\alpha^{-}, & \text{otherwise.}
+\end{cases}
+\]
+Three parameters: $\alpha^{+}, \alpha^{-} \in (0, 1)$, $\beta > 0$. Sensitive to asymmetries between positive and negative reward-prediction errors (Niv et al., 2012).
+
+\textbf{Q-Learning with Forgetting.} After the chosen-option update, the unchosen option decays toward 0:
+\[
+Q_{\text{unchosen}} \leftarrow Q_{\text{unchosen}} + \mathrm{forget} \cdot (0 - Q_{\text{unchosen}}).
+\]
+Three parameters: $\alpha, \mathrm{forget} \in (0, 1)$, $\beta > 0$.
+
+\textbf{Q-Learning with Dynamic Learning Rate.} The effective learning rate boosts following recent surprises:
+\[
+\alpha_t = \min\!\left(1,\; \alpha_{\text{base}} + \alpha_{\text{gain}} \cdot u_{t-1}\right),
+\]
+where
+\[
+u_t = \mathrm{decay} \cdot u_{t-1} + (1 - \mathrm{decay}) \cdot |r_t - Q_{c_t}|.
+\]
+Four parameters: $\alpha_{\text{base}}, \alpha_{\text{gain}}, \mathrm{decay} \in (0, 1)$, $\beta > 0$.
+
+\textbf{Condition-Aware Q-Learning.} A separate learning rate is fit for each of the four earning-budget conditions:
+\[
+Q_{c_t} \leftarrow Q_{c_t} + \alpha_{\mathrm{cond}(t)} \cdot (r_t - Q_{c_t}),
+\]
+where $\mathrm{cond}(t) \in \{\mathrm{Chicken}, \mathrm{Crab}, \mathrm{Turtle}, \mathrm{Piranha}\}$. Five parameters: $\alpha_{\mathrm{Chicken}}, \alpha_{\mathrm{Crab}}, \alpha_{\mathrm{Turtle}}, \alpha_{\mathrm{Piranha}} \in (0, 1)$, $\beta > 0$.
+
+\section*{REINFORCEMENT LEARNING STATE-ACTION MODELS}
+
+\indent Both models maintain a dictionary-based Q-table indexed by discrete state. New states are initialized at $(0, 0)$. On each trial, the model looks up the current state $s_t$, sets $P_t(\mathrm{SS}) = \sigma\!\left( \beta \cdot (Q[s_t]_{\mathrm{SS}} - Q[s_t]_{\mathrm{LL}}) \right)$, and after the choice updates
+\[
+Q[s_t]_{c_t} \leftarrow Q[s_t]_{c_t} + \alpha \cdot (r_t - Q[s_t]_{c_t}).
+\]
+
+\textbf{Operant Q-Table.} The state is:
+\[
+s_t = (\mathrm{delay\_bin},\; \mathrm{previous\_choice},\; \mathrm{previous\_outcome\_sign}).
+\]
+Two parameters: $\alpha \in (0, 1)$, $\beta > 0$.
+
+\textbf{Operant + Budget Q-Table.} The state is:
+\[
+s_t = (\mathrm{delay\_bin},\; \mathrm{previous\_choice},\; \mathrm{previous\_outcome\_sign},\; \mathrm{bank\_bin},\; \mathrm{time\_left\_bin}).
+\]
+Two parameters: $\alpha \in (0, 1)$, $\beta > 0$.
+
+\section*{HUMAN-AS-Q-TABLE ALGORITHM}
+
+\indent The Q-table is populated directly from the participant's observed choice history. For each trial $t$ with state $s_t$, the model consults $Q[s_t] = (\mathrm{count}_{\mathrm{LL}}, \mathrm{count}_{\mathrm{SS}})$ populated from trials 1 through $t - 1$. The predicted choice is the argmax of the counts (ties broken to the participant's running majority class). The predicted probability used for likelihood and calibration is
+\[
+P_t(\mathrm{SS}) = \mathrm{clip}\!\left( \frac{\max(\mathrm{count}_{\mathrm{SS}},\, 1)}{\mathrm{count}_{\mathrm{SS}} + \mathrm{count}_{\mathrm{LL}} + 1},\; 0.05,\; 0.95 \right)
+\]
+if the predicted choice is SS; otherwise $P_t(\mathrm{SS}) = 1 - $ that value. The Q-table is then updated by
+\[
+Q[s_t]_{c_t} \leftarrow Q[s_t]_{c_t} + 1.
+\]
+Zero free parameters.
+
+We ran two variants distinguished by their state representation, matching the two state-action Q-table models above. \textit{Operant} uses $s_t = (\mathrm{delay\_bin},\; \mathrm{previous\_choice},\; \mathrm{previous\_outcome\_sign})$. \textit{Operant + Budget} adds $(\mathrm{bank\_bin},\; \mathrm{time\_left\_bin})$. The clipping to $(0.05, 0.95)$ prevents degenerate log-likelihoods when an unseen state is encountered or when counts have not yet accumulated; the predicted \textit{choice} itself is unaffected.
+
+\end{document}

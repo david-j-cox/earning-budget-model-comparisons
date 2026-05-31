@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+
+# Claude Code project config
+.claude/
+
+# Office temp lock files
+~$*
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+texput.*
+
+# Pandoc / build intermediates
+_build/
+
+# Manuscript documents (kept out of the code supplement)
+manuscript_documents/
