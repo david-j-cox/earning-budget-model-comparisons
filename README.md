@@ -36,7 +36,6 @@ data-sharing obligations before distributing the repository publicly.
 | family (`model_family`) | models |
 |-------------------------|--------|
 | baseline                | random, bias, win-stay/lose-shift, logistic |
-| matching                | generalized matching law |
 | energy_budget           | one-parameter sigmoid, two-parameter + threshold, Caraco z-score, categorical preference-reversal, marginal value (loss-rate rho), marginal value (fitted rho) |
 | historical_dynamics     | melioration, kinetic, behavioral momentum, hill-climbing, ratio invariance |
 | rl_action_value         | Q-learning, dual-α, forgetting, dynamic-α, condition-aware |
@@ -60,7 +59,7 @@ pipeline/                importable library package
   load_data.py           read Exp1 spreadsheets -> long format
   feature_engineering.py derive per-trial features (budget distance, rolling rates, states)
   models/                per-family model dynamics (single source for fit + prediction)
-    baselines.py  matching.py  energy_budget.py
+    baselines.py  energy_budget.py
     historical_dynamics.py  rl_action_value.py  rl_state_action.py
   fit_runner.py          orchestrates per-subject fits across all families/scopes
   predictions.py         replay fitted models to per-trial predicted P(SS)

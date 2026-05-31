@@ -1,11 +1,11 @@
 # Python dependencies for the MLApproach pipeline.
 # Create an environment and install with:
 #   python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
-numpy
-pandas
-scipy
-scikit-learn
-matplotlib
-pyarrow
-joblib
-openpyxl
+numpy==2.4.6
+pandas==3.0.3
+scipy==1.17.1
+scikit-learn==1.8.0
+matplotlib==3.10.9
+pyarrow==24.0.0
+joblib==1.5.3
+openpyxl==3.1.5
