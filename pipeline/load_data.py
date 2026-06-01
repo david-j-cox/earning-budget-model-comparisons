@@ -24,6 +24,17 @@ from . import config
 
 warnings.simplefilter("ignore")
 
+# The two negative-budget blocks are transposed in the raw P-sheets: the block
+# labeled "Turtle" carries the steepest-loss (-0.50 pt/s) contingency and the
+# block labeled "Piranha" carries the near-zero (-0.05 pt/s) contingency. This
+# is unambiguous in the survival data (the "Turtle"-labeled block ends after ~5
+# choices with ~100 s still on the clock in Group 05; "Piranha" runs longer) and
+# contradicts Table 1 and the Discussion, which describe Piranha as the -0.50
+# condition where "participants died before they generated [responses]." We
+# correct the labels at ingest so condition names match the programmed
+# contingencies in config.CONDITIONS everywhere downstream.
+RAW_CONDITION_REMAP = {"Turtle": "Piranha", "Piranha": "Turtle"}
+
 
 def _read_p_sheet(xls, sheet_name, group):
     """Extract one participant's four-condition data from a P-sheet."""
@@ -49,6 +60,8 @@ def _read_p_sheet(xls, sheet_name, group):
         cond_name = cond_name.strip()
         if cond_name not in config.CONDITIONS:
             continue
+        # Correct the transposed negative-budget labels (see RAW_CONDITION_REMAP).
+        cond_name = RAW_CONDITION_REMAP.get(cond_name, cond_name)
 
         try:
             choice = df.iloc[sr + config.ROW_OFFSET_CHOICE,    config.DATA_COL_START:].dropna().values.astype(float)

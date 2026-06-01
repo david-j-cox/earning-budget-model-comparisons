@@ -4,9 +4,9 @@ Outputs (under results/figures/):
   fig_calibration.png  : 18-panel grid; one panel per model. Each panel shows
                          binned predicted P(SS) (x) vs. observed choice rate (y),
                          colored by condition.
-  fig_trajectory.png   : 8-panel grid (4 conditions × 2 groups). Each panel
+  fig_trajectory_all.png : 8-panel grid (4 conditions × 2 groups). Each panel
                          shows mean observed proportion-SS over trials and one
-                         line per model.
+                         line per model. Per-family variants: fig_trajectory_<family>.png.
 
 Uses scope='all' predictions (model fit pooled across conditions).
 """

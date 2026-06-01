@@ -2,7 +2,7 @@
 
 Selects a random, group-balanced subset of participants (default 4 from each of
 the 5:1 and 10:1 groups) restricted to those with at least 15 recorded choices
-and no exclusive preference for one alternative in every condition (Turtle
+and no exclusive preference for one alternative in every condition (Piranha
 exempt in the 5:1 group, where the condition ends before 15 choices accrue),
 and writes one figure per participant under
 results/figures/appendix_b/. Each figure is a 2x2 grid (one panel per condition)
@@ -35,11 +35,11 @@ SEED = 42
 
 # Eligibility: a participant is drawable only if they have at least MIN_CHOICES
 # recorded choices in every condition except those exempted for their group.
-# In the 5:1 group the Turtle condition typically ends before 15 choices accrue
-# (max observed = 9), so it is exempt there.
+# In the 5:1 group the Piranha condition (-0.50 pt/s) typically ends before 15
+# choices accrue (participants die early), so it is exempt there.
 MIN_CHOICES = 15
 ALL_CONDITIONS = ["Chicken", "Crab", "Turtle", "Piranha"]
-EXEMPT_CONDITIONS = {"05": {"Turtle"}, "10": set()}
+EXEMPT_CONDITIONS = {"05": {"Piranha"}, "10": set()}
 
 
 def eligible_subjects(preds, group, min_choices=MIN_CHOICES):
@@ -134,7 +134,7 @@ The figures below show trial-by-trial model fits for a random, group-balanced
 subset of {len(subjects)} participants ({N_PER_GROUP} from each group), drawn
 with a fixed seed for reproducibility from those with at least {MIN_CHOICES}
 recorded choices and no exclusive preference for a single alternative in each
-condition (the Turtle condition is exempt in the 5:1 group, where it typically
+condition (the Piranha condition is exempt in the 5:1 group, where it typically
 ends before {MIN_CHOICES} choices accrue). Whereas the
 figures in the main text
 aggregate across participants, every model in this paper was fit at the
